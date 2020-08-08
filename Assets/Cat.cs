@@ -65,7 +65,6 @@ namespace Plus.CatSimulator
         }
     }
 
-
     public interface ICat
     {
         CatMood Mood { get; }
@@ -75,6 +74,13 @@ namespace Plus.CatSimulator
         event EventHandler<CatBehaviourArgs> BehaviourUpdate;
 
         void TakeAction(string actionName);
+    }
+
+    public enum CatSpeed
+    {
+        Default = 0,
+        Fast = 1,
+        SuperFast = 2
     }
 
     [RequireComponent(typeof(NavMeshAgent))]
@@ -96,36 +102,50 @@ namespace Plus.CatSimulator
         }
 
         public string CurrentBehaviourDescription => currentBehaviour.BehaviourDescription;
-
-        private CatMood mood;
-
-        private List<CatBehaviour> behaviours = new List<CatBehaviour>();
-        private ICatBehaviour currentBehaviour;
-
         public event EventHandler<CatMoodArgs> MoodChange;
         public event EventHandler<CatBehaviourArgs> BehaviourUpdate;
 
+        private CatMood mood;
+        private List<CatBehaviour> behaviours = new List<CatBehaviour>();
+        private ICatBehaviour currentBehaviour;
+
+        private NavMeshAgent navMeshAgent;
+        private ICarpet[] carpets;
+        private IBall ball;
+        private IRoom[] rooms;        
+
+        private bool behaviourWasStarted;
+
         private void Awake()
         {
-            behaviours.Add(new CatBehaviour("Play", CatMood.Bad, () => { }, "Сидит на месте", CatMood.Bad));
-            behaviours.Add(new CatBehaviour("Play", CatMood.Good, () => { }, "Медленно бегает за мячиком", CatMood.Great));
-            behaviours.Add(new CatBehaviour("Play", CatMood.Great, () => { }, "Носится как угарелая", CatMood.Great));
+            // TODO: move to dictionary?
+            behaviours.Add(new CatBehaviour("Play", CatMood.Bad, BehaviourSitting, "Сидит на месте", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Play", CatMood.Good, BehaviourRunSlowlyToTheBall, "Медленно бегает за мячиком", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Play", CatMood.Great, BehaviourRunLikeForestGump, "Носится как угорелая", CatMood.Great));
 
-            behaviours.Add(new CatBehaviour("Feed", CatMood.Bad, () => { }, "все съедает, но если в это время подойти - поцарапает", CatMood.Good));
-            behaviours.Add(new CatBehaviour("Feed", CatMood.Good, () => { }, "быстро все съедает", CatMood.Great));
-            behaviours.Add(new CatBehaviour("Feed", CatMood.Great, () => { }, "быстро все съедает", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Feed", CatMood.Bad, BehaviourEatAllAggressive, "все съедает, но если в это время подойти - поцарапает", CatMood.Good));
+            behaviours.Add(new CatBehaviour("Feed", CatMood.Good, BehaviourEatAllQuickly, "быстро все съедает", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Feed", CatMood.Great, BehaviourEatAllQuickly, "быстро все съедает", CatMood.Great));
 
-            behaviours.Add(new CatBehaviour("Stroke", CatMood.Bad, () => { }, "царапает", CatMood.Bad));
-            behaviours.Add(new CatBehaviour("Stroke", CatMood.Good, () => { }, "мурлычет", CatMood.Great));
-            behaviours.Add(new CatBehaviour("Stroke", CatMood.Great, () => { }, "мурлычет и виляет хвостом", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Stroke", CatMood.Bad, BehaviourScratch, "царапает", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Stroke", CatMood.Good, BehaviourPurr, "мурлычет", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Stroke", CatMood.Great, BehaviourPurrAndWagTail, "мурлычет и виляет хвостом", CatMood.Great));
 
-            behaviours.Add(new CatBehaviour("Kick", CatMood.Bad, () => { }, "прыгает и кусает за правое ухо", CatMood.Bad));
-            behaviours.Add(new CatBehaviour("Kick", CatMood.Good, () => { }, "убегает на ковёр и писает", CatMood.Bad));
-            behaviours.Add(new CatBehaviour("Kick", CatMood.Great, () => { }, "убегает в другую комнату", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Kick", CatMood.Bad, BehaviourJumpAndBiteRightEar, "прыгает и кусает за правое ухо", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Kick", CatMood.Good, BehaviourRunAndPiss, "убегает на ковёр и писает", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Kick", CatMood.Great, BehaviourRunAnotherRoom, "убегает в другую комнату", CatMood.Bad));
 
             // TODO: Default.
             Mood = behaviours.First().MoodCondition;
             currentBehaviour = behaviours.First();            
+        }
+
+        private void Start()
+        {
+            navMeshAgent = transform.GetComponent<NavMeshAgent>();
+            carpets = GameObject.FindObjectsOfType<Carpet>();
+            ball = GameObject.FindObjectOfType<Ball>();
+            rooms = GameObject.FindObjectsOfType<Room>();
         }
 
         private void Update()
@@ -139,7 +159,11 @@ namespace Plus.CatSimulator
             try
             {
                 var behaviour = behaviours.Where(i => i.Name == actionName && i.MoodCondition == Mood).Single();
+                
                 currentBehaviour = behaviour;
+                behaviourWasStarted = false;
+                SetSpeed(CatSpeed.Default);
+
                 Mood = behaviour.MoodResult;
 
                 BehaviourUpdate?.Invoke(this, new CatBehaviourArgs(behaviour.BehaviourDescription));
@@ -149,6 +173,135 @@ namespace Plus.CatSimulator
                 Debug.Log($"action: \"{actionName}\" and MoodCondition: \"{Mood}\" not found in cat's behaviours list");
                 throw;
             }  
+        }
+
+        private void SetSpeed(CatSpeed speed)
+        {
+            switch (speed)
+            {
+                case CatSpeed.Default:
+                    navMeshAgent.acceleration = 8f;
+                    navMeshAgent.speed = 3.5f;
+                    navMeshAgent.angularSpeed = 120f;
+                    break;
+                case CatSpeed.Fast:
+                    navMeshAgent.acceleration = 50f;
+                    navMeshAgent.speed = 25f;
+                    navMeshAgent.angularSpeed = 150f;
+                    break;
+                case CatSpeed.SuperFast:
+                    navMeshAgent.acceleration = 200f;
+                    navMeshAgent.speed = 50f;
+                    navMeshAgent.angularSpeed = 200f;
+                    break;
+            }
+        }
+
+        private void BehaviourSitting()
+        {
+            // TODO: Run sitting animation.
+        }
+
+        private void BehaviourRunSlowlyToTheBall()
+        {
+            navMeshAgent.SetDestination(ball.Transform.position);
+        }
+
+        private void BehaviourRunLikeForestGump()
+        {
+            SetSpeed(CatSpeed.SuperFast);
+
+            if (!behaviourWasStarted)
+            {
+                StartCoroutine(Running());
+                behaviourWasStarted = true;
+            }            
+
+            IEnumerator Running()
+            {
+                while (true)
+                {
+                    float walkDistance = 10f;
+                    Vector3 randomDirection = UnityEngine.Random.insideUnitSphere * walkDistance;
+                    randomDirection += transform.position;
+                    NavMeshHit hit;
+                    NavMesh.SamplePosition(randomDirection, out hit, walkDistance, NavMesh.AllAreas);
+                    Vector3 finalPosition = hit.position;
+                    
+                    navMeshAgent.SetDestination(finalPosition);
+
+                    yield return new WaitForSeconds(0.3f);
+                }                
+            }
+        }
+
+        private void BehaviourEatAllAggressive()
+        {
+            // TODO: move to next food, eat and be aggressive.
+        }
+
+        private void BehaviourEatAllQuickly()
+        {
+            // TODO: move to next food and eat.
+        }
+
+        private void BehaviourScratch()
+        {
+            // TODO: scratch animation
+        }
+
+        private void BehaviourPurr()
+        {
+            // TODO: purr animation/sound.
+        }
+
+        private void BehaviourPurrAndWagTail()
+        {
+            // TODO: call BehaviourPurr(); and run animation of tail.
+        }
+
+        private void BehaviourJumpAndBiteRightEar()
+        {
+            // TODO: go to player, run jump animation?
+        }
+
+        private void BehaviourRunAndPiss()
+        {
+            SetSpeed(CatSpeed.Fast);
+            try
+            {
+                navMeshAgent.SetDestination(carpets.First().Transform.position);
+            }
+            finally
+            {
+
+            }            
+        }
+
+        private void BehaviourRunAnotherRoom()
+        {
+            if (!behaviourWasStarted)
+            {
+                behaviourWasStarted = true;
+                SetSpeed(CatSpeed.Fast);
+
+                NavMeshHit navMeshHit;
+                navMeshAgent.SamplePathPosition(NavMesh.AllAreas, 0f, out navMeshHit);
+
+                try
+                {
+                    var anotherRoom = rooms.Where(i => i.NavMeshAreaMask != navMeshHit.mask).First();
+
+                    NavMeshHit hit;
+                    NavMesh.SamplePosition(anotherRoom.Center, out hit, 1f, anotherRoom.NavMeshAreaMask);
+
+                    navMeshAgent.SetDestination(hit.position);
+                }
+                finally
+                {
+
+                }
+            }
         }
     }
 }

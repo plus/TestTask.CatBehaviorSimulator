@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface ICarpet
+public interface IBall
 {
     Transform Transform { get; }
 }
 
-public class Carpet : MonoBehaviour, ICarpet
+public class Ball : MonoBehaviour, IBall
 {
     public Transform Transform => transform;
 }
