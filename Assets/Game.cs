@@ -6,7 +6,6 @@ using UnityEngine.UI;
 
 namespace Plus.CatSimulator
 {
-
     public class Game : MonoBehaviour
     {
         [SerializeField] private Text moodText;

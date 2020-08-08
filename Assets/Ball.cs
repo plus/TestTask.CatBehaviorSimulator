@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface IBall
+namespace Plus.CatSimulator
 {
-    Transform Transform { get; }
-}
+    public interface IBall
+    {
+        Transform Transform { get; }
+    }
 
-public class Ball : MonoBehaviour, IBall
-{
-    public Transform Transform => transform;
+    public class Ball : MonoBehaviour, IBall
+    {
+        public Transform Transform => transform;
+    }
 }

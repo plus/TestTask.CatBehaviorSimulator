@@ -69,11 +69,13 @@ namespace Plus.CatSimulator
     {
         CatMood Mood { get; }
         string CurrentBehaviourDescription { get; }
+        Transform Transform { get; }
 
         event EventHandler<CatMoodArgs> MoodChange;
         event EventHandler<CatBehaviourArgs> BehaviourUpdate;
 
         void TakeAction(string actionName);
+        void TakeFood(IFood[] food);
     }
 
     public enum CatSpeed
@@ -102,6 +104,9 @@ namespace Plus.CatSimulator
         }
 
         public string CurrentBehaviourDescription => currentBehaviour.BehaviourDescription;
+
+        public Transform Transform => transform;
+
         public event EventHandler<CatMoodArgs> MoodChange;
         public event EventHandler<CatBehaviourArgs> BehaviourUpdate;
 
@@ -112,9 +117,13 @@ namespace Plus.CatSimulator
         private NavMeshAgent navMeshAgent;
         private ICarpet[] carpets;
         private IBall ball;
-        private IRoom[] rooms;        
+        private IRoom[] rooms;
+        private List<IFood> food;
+        private IPlayer player;
 
         private bool behaviourWasStarted;
+
+        private readonly float distancePlayerIsClose = 1f;
 
         private void Awake()
         {
@@ -146,6 +155,7 @@ namespace Plus.CatSimulator
             carpets = GameObject.FindObjectsOfType<Carpet>();
             ball = GameObject.FindObjectOfType<Ball>();
             rooms = GameObject.FindObjectsOfType<Room>();
+            player = GameObject.FindObjectOfType<Player>();
         }
 
         private void Update()
@@ -175,6 +185,11 @@ namespace Plus.CatSimulator
             }  
         }
 
+        public void TakeFood(IFood[] food)
+        {
+            this.food = food.ToList();
+        }
+
         private void SetSpeed(CatSpeed speed)
         {
             switch (speed)
@@ -196,6 +211,28 @@ namespace Plus.CatSimulator
                     break;
             }
         }
+
+        private bool IsPlayerClose()
+        {
+            return (player.Position - transform.position).magnitude < distancePlayerIsClose;
+        }
+
+        private void EatFood()
+        {
+            if (food.Count != 0)
+            {
+                var firstFood = food.First();
+                navMeshAgent.SetDestination(firstFood.Transform.position);
+
+                if ((transform.position - firstFood.Transform.position).magnitude < 1f)
+                {
+                    firstFood.EatMe();
+                    food.Remove(firstFood);
+                }
+            }
+        }
+
+        #region Behaviours
 
         private void BehaviourSitting()
         {
@@ -238,11 +275,19 @@ namespace Plus.CatSimulator
         private void BehaviourEatAllAggressive()
         {
             // TODO: move to next food, eat and be aggressive.
+            // TODO: speed
+            EatFood();
+
+            if (IsPlayerClose())
+            {
+                Debug.Log("ПОЦАРАПАЮ ПАДЛА!");
+            }
         }
 
         private void BehaviourEatAllQuickly()
         {
-            // TODO: move to next food and eat.
+            // TODO: speed
+            EatFood();
         }
 
         private void BehaviourScratch()
@@ -303,5 +348,7 @@ namespace Plus.CatSimulator
                 }
             }
         }
+        #endregion
+
     }
 }

@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface ICarpet
+namespace Plus.CatSimulator
 {
-    Transform Transform { get; }
-}
+    public interface ICarpet
+    {
+        Transform Transform { get; }
+    }
 
-public class Carpet : MonoBehaviour, ICarpet
-{
-    public Transform Transform => transform;
+    public class Carpet : MonoBehaviour, ICarpet
+    {
+        public Transform Transform => transform;
+    }
 }
