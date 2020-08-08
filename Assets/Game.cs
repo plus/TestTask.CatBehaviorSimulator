@@ -23,6 +23,14 @@ namespace Plus.CatSimulator
             UpdateBehaviourDescriptionText(cat.CurrentBehaviourDescription);
         }
 
+        private void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                Application.Quit();
+            }
+        }
+
         private void Cat_BehaviourUpdate(object sender, CatBehaviourArgs e)
         {
             UpdateBehaviourDescriptionText(e.BehaviourDescription);

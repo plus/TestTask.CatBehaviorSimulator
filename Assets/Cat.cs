@@ -197,17 +197,17 @@ namespace Plus.CatSimulator
                 case CatSpeed.Default:
                     navMeshAgent.acceleration = 8f;
                     navMeshAgent.speed = 3.5f;
-                    navMeshAgent.angularSpeed = 120f;
+                    navMeshAgent.angularSpeed = 300f;
                     break;
                 case CatSpeed.Fast:
                     navMeshAgent.acceleration = 50f;
                     navMeshAgent.speed = 25f;
-                    navMeshAgent.angularSpeed = 150f;
+                    navMeshAgent.angularSpeed = 400f;
                     break;
                 case CatSpeed.SuperFast:
                     navMeshAgent.acceleration = 200f;
                     navMeshAgent.speed = 50f;
-                    navMeshAgent.angularSpeed = 200f;
+                    navMeshAgent.angularSpeed = 500f;
                     break;
             }
         }
