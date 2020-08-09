@@ -118,10 +118,11 @@ namespace Plus.CatSimulator
         private ICarpet[] carpets;
         private IBall ball;
         private IRoom[] rooms;
-        private List<IFood> food;
+        private Queue<IFood> food = new Queue<IFood>();
         private IPlayer player;
 
         private bool behaviourWasStarted;
+        private bool behaviourWasFinished;
 
         private readonly float distancePlayerIsClose = 1f;
 
@@ -165,6 +166,8 @@ namespace Plus.CatSimulator
 
         public void TakeAction(string actionName)
         {
+            if (!behaviourWasFinished) return;
+
             // Search.
             try
             {
@@ -180,14 +183,17 @@ namespace Plus.CatSimulator
             }
             catch (Exception)
             {
-                Debug.Log($"action: \"{actionName}\" and MoodCondition: \"{Mood}\" not found in cat's behaviours list");
+                Debug.Log($"action: \"{actionName}\" and MoodCondition: \"{Mood}\" not found in cat's behaviours list. Or your list of behaviours is incorrect");
                 throw;
             }  
         }
 
         public void TakeFood(IFood[] food)
         {
-            this.food = food.ToList();
+            foreach (var item in food)
+            {
+                this.food.Enqueue(item);
+            }
         }
 
         private void SetSpeed(CatSpeed speed)
@@ -221,14 +227,19 @@ namespace Plus.CatSimulator
         {
             if (food.Count != 0)
             {
-                var firstFood = food.First();
+                var firstFood = food.Peek();
                 navMeshAgent.SetDestination(firstFood.Transform.position);
 
                 if ((transform.position - firstFood.Transform.position).magnitude < 1f)
                 {
                     firstFood.EatMe();
-                    food.Remove(firstFood);
+                    food.Dequeue();
                 }
+            }
+
+            if (food.Count == 0)
+            {
+                behaviourWasFinished = true;
             }
         }
 
@@ -236,16 +247,19 @@ namespace Plus.CatSimulator
 
         private void BehaviourSitting()
         {
+            behaviourWasFinished = true;
             // TODO: Run sitting animation.
         }
 
         private void BehaviourRunSlowlyToTheBall()
         {
+            behaviourWasFinished = true;
             navMeshAgent.SetDestination(ball.Transform.position);
         }
 
         private void BehaviourRunLikeForestGump()
         {
+            behaviourWasFinished = true;
             SetSpeed(CatSpeed.SuperFast);
 
             if (!behaviourWasStarted)
@@ -274,57 +288,67 @@ namespace Plus.CatSimulator
 
         private void BehaviourEatAllAggressive()
         {
-            // TODO: move to next food, eat and be aggressive.
-            // TODO: speed
+            behaviourWasFinished = false;
+
+            SetSpeed(CatSpeed.Default);
             EatFood();
 
             if (IsPlayerClose())
             {
+                // TODO: animation;
                 Debug.Log("ПОЦАРАПАЮ ПАДЛА!");
             }
         }
 
         private void BehaviourEatAllQuickly()
         {
-            // TODO: speed
+            behaviourWasFinished = false;
+
+            SetSpeed(CatSpeed.Fast);
             EatFood();
         }
 
         private void BehaviourScratch()
         {
+            behaviourWasFinished = true;
             // TODO: scratch animation
         }
 
         private void BehaviourPurr()
         {
+            behaviourWasFinished = true;
             // TODO: purr animation/sound.
         }
 
         private void BehaviourPurrAndWagTail()
         {
+            behaviourWasFinished = true;
             // TODO: call BehaviourPurr(); and run animation of tail.
         }
 
         private void BehaviourJumpAndBiteRightEar()
         {
+            behaviourWasFinished = true;
             // TODO: go to player, run jump animation?
         }
 
         private void BehaviourRunAndPiss()
         {
+            behaviourWasFinished = true;
             SetSpeed(CatSpeed.Fast);
-            try
+
+            var carpet = carpets.FirstOrDefault();
+            if (carpet is object)
             {
                 navMeshAgent.SetDestination(carpets.First().Transform.position);
-            }
-            finally
-            {
+            }          
 
-            }            
+            // TODO: piss animation when come to carpet
         }
 
         private void BehaviourRunAnotherRoom()
         {
+            behaviourWasFinished = true;
             if (!behaviourWasStarted)
             {
                 behaviourWasStarted = true;
@@ -333,18 +357,14 @@ namespace Plus.CatSimulator
                 NavMeshHit navMeshHit;
                 navMeshAgent.SamplePathPosition(NavMesh.AllAreas, 0f, out navMeshHit);
 
-                try
-                {
-                    var anotherRoom = rooms.Where(i => i.NavMeshAreaMask != navMeshHit.mask).First();
+                var anotherRoom = rooms.Where(i => i.NavMeshAreaMask != navMeshHit.mask).FirstOrDefault();
 
+                if (anotherRoom is object)
+                {
                     NavMeshHit hit;
                     NavMesh.SamplePosition(anotherRoom.Center, out hit, 1f, anotherRoom.NavMeshAreaMask);
 
                     navMeshAgent.SetDestination(hit.position);
-                }
-                finally
-                {
-
                 }
             }
         }
