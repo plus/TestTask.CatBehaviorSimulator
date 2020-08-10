@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -112,24 +111,27 @@ namespace Plus.CatSimulator
         public event EventHandler<CatBehaviourArgs> BehaviourUpdate;
 
         private CatMood mood;
-        private List<CatBehaviour> behaviours = new List<CatBehaviour>();
+        private List<ICatBehaviour> behaviours = new List<ICatBehaviour>();
         private ICatBehaviour currentBehaviour;
 
         private NavMeshAgent navMeshAgent;
         private ICarpet[] carpets;
         private IBall ball;
-        private IRoom[] rooms;
-        private Queue<IFood> food = new Queue<IFood>();
+        private IRoom[] rooms;        
         private IPlayer player;
+
+        private Queue<IFood> food = new Queue<IFood>();
+        
+        private bool behaviourWasStarted;
+        private bool behaviourWasFinished;
+        private bool destinationWasReached;
+        private Vector3 destinationPosition;
+
+        private readonly float distancePlayerIsClose = 1f;
+
         [SerializeField] private Animator animator;
         [SerializeField] private AudioClip clipPurr;
         [SerializeField] private AudioSource audioSource;
-
-
-        private bool behaviourWasStarted;
-        private bool behaviourWasFinished;
-
-        private readonly float distancePlayerIsClose = 1f;
 
         private void Awake()
         {
@@ -185,6 +187,9 @@ namespace Plus.CatSimulator
                 animator.SetBool("Walk", false);
                 animator.SetBool("Jump", false);
                 animator.SetBool("Meow", false);
+                animator.SetBool("Sit", false);
+                animator.SetBool("Tail", false);
+                animator.SetBool("Scratch", false);
                 animator.speed = 1;
 
                 audioSource.Stop();
@@ -281,8 +286,7 @@ namespace Plus.CatSimulator
         private void BehaviourSitting()
         {
             behaviourWasFinished = true;
-            // TODO: Run sitting animation.
-            // (BLENDER)
+            animator.SetBool("Sit", true);
         }
 
         private void BehaviourRunSlowlyToTheBall()
@@ -347,8 +351,7 @@ namespace Plus.CatSimulator
         private void BehaviourScratch()
         {
             behaviourWasFinished = true;
-            // TODO: scratch animation
-            // (BLENDER)
+            animator.SetBool("Scratch", true);
         }
 
         private void BehaviourPurr()
@@ -371,8 +374,8 @@ namespace Plus.CatSimulator
                 audioSource.clip = clipPurr;
                 audioSource.Play();
 
-                // TODO: tail animation
-                // (BLENDER)
+                animator.SetBool("Tail", true);
+                SetSpeed(CatSpeed.Fast);
             }
         }
 
@@ -386,25 +389,47 @@ namespace Plus.CatSimulator
         private void BehaviourRunAndPiss()
         {
             behaviourWasFinished = true;
-            SetSpeed(CatSpeed.Fast);
 
-            var carpet = carpets.FirstOrDefault();
-            if (carpet is object)
+            if (!behaviourWasStarted)
             {
-                navMeshAgent.SetDestination(carpets.First().Transform.position);
+                behaviourWasStarted = true;
+                destinationWasReached = false;                
+
+                var carpet = carpets.FirstOrDefault();
+                if (carpet is object)
+                {
+                    animator.SetBool("Walk", true);
+                    SetSpeed(CatSpeed.Fast);
+
+                    // TODO: random carpet (not first)?
+                    destinationPosition = carpets.First().Transform.position;
+                    navMeshAgent.SetDestination(destinationPosition);
+                }
+                else
+                {
+                    destinationWasReached = true;
+                }
             }
 
-            // TODO: piss animation when come to carpet
-            // (BLENDER)
+            if (behaviourWasStarted && !destinationWasReached)
+            {
+                if ((destinationPosition - transform.position).magnitude < 1.5f) // TODO: 1f magic
+                {
+                    destinationWasReached = true;
+                    animator.SetBool("Walk", false);
+
+                    // TODO: piss processing.
+                }
+            }
         }
 
         private void BehaviourRunAnotherRoom()
         {
             behaviourWasFinished = true;
             if (!behaviourWasStarted)
-            {
+            {                
                 behaviourWasStarted = true;
-                SetSpeed(CatSpeed.Fast);
+                destinationWasReached = false;
 
                 NavMeshHit navMeshHit;
                 navMeshAgent.SamplePathPosition(NavMesh.AllAreas, 0f, out navMeshHit);
@@ -413,10 +438,23 @@ namespace Plus.CatSimulator
 
                 if (anotherRoom is object)
                 {
+                    animator.SetBool("Walk", true);
+                    SetSpeed(CatSpeed.Fast);
+
+                    destinationPosition = anotherRoom.Center;
                     NavMeshHit hit;
-                    NavMesh.SamplePosition(anotherRoom.Center, out hit, 1f, anotherRoom.NavMeshAreaMask);
+                    NavMesh.SamplePosition(destinationPosition, out hit, 1f, anotherRoom.NavMeshAreaMask);
 
                     navMeshAgent.SetDestination(hit.position);
+                }
+            }
+
+            if (behaviourWasStarted && !destinationWasReached)
+            {
+                if ((destinationPosition - transform.position).magnitude <  1.5f) // TODO: 1f magic
+                {
+                    destinationWasReached = true;
+                    animator.SetBool("Walk", false);
                 }
             }
         }
