@@ -126,8 +126,9 @@ namespace Plus.CatSimulator
         private bool behaviourWasFinished;
         private bool destinationWasReached;
         private Vector3 destinationPosition;
+        private ICarpet currentCarpet;
 
-        private readonly float distancePlayerIsClose = 1f;
+        private readonly float distancePlayerIsClose = 1.5f;
 
         [SerializeField] private Animator animator;
         [SerializeField] private AudioClip clipPurr;
@@ -235,12 +236,7 @@ namespace Plus.CatSimulator
             }
         }
 
-        private bool IsPlayerClose()
-        {
-            return (player.Position - transform.position).magnitude < distancePlayerIsClose;
-        }
-
-        private void EatFood()
+        private void EatFood(bool isAggressive)
         {
             if (!behaviourWasStarted)
             {
@@ -257,12 +253,20 @@ namespace Plus.CatSimulator
                     navMeshAgent.SetDestination(firstFood.Transform.position);
                     animator.SetBool("Walk", true);
 
-                    if ((transform.position - firstFood.Transform.position).magnitude < 1f)
+                    if (isAggressive && ((transform.position - player.Position).magnitude < 1.5f))
+                    {
+                        navMeshAgent.SetDestination(transform.position);
+                        animator.SetBool("Walk", false);
+                        yield return StartCoroutine(Scratching());
+                        navMeshAgent.SetDestination(firstFood.Transform.position);
+                        animator.SetBool("Walk", true);
+                    }
+                    else if ((transform.position - firstFood.Transform.position).magnitude < 1.5f)
                     {
                         animator.SetBool("Walk", false);
                         animator.SetBool("Eat", true);
 
-                        yield return new WaitForSeconds(3f);
+                        yield return StartCoroutine(Eating());
                         firstFood.EatMe();
                         food.Dequeue();
 
@@ -278,6 +282,51 @@ namespace Plus.CatSimulator
                 {
                     behaviourWasFinished = true;
                 }                
+            }
+
+            IEnumerator Eating()
+            {
+                var time = Time.realtimeSinceStartup;
+
+                while (Time.realtimeSinceStartup - time < 3f)
+                {
+                    if (isAggressive && ((transform.position - player.Position).magnitude < 1.5f))
+                    {
+                        yield return StartCoroutine(Scratching());
+                    }
+                        
+                    yield return null;
+                }                
+            }
+
+            IEnumerator Scratching()
+            {           
+                var eatBefore = animator.GetBool("Eat");
+                
+                animator.SetBool("Eat", false);
+                animator.SetBool("Scratch", true);
+
+                yield return StartCoroutine(WaitAndRotate(3f));
+
+                animator.SetBool("Scratch", false);
+                animator.SetBool("Eat", eatBefore);
+            }
+
+            IEnumerator WaitAndRotate(float duration)
+            {
+                var time = Time.realtimeSinceStartup;
+
+                while (Time.realtimeSinceStartup - time < duration)
+                {
+                    navMeshAgent.updateRotation = false;
+
+                    var targetRotation = Quaternion.LookRotation(player.Position - transform.position, Vector3.up);
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, 3f);
+
+                    yield return null;                    
+                }
+
+                navMeshAgent.updateRotation = true;
             }
         }
 
@@ -331,21 +380,14 @@ namespace Plus.CatSimulator
         private void BehaviourEatAllAggressive()
         {
             SetSpeed(CatSpeed.Default);            
-            EatFood();
-
-            if (IsPlayerClose())
-            {
-                // TODO: animation, возможно надо унести в корутину внутри eatfood? (с bool учетом агрессив поведения),
-                // так как по логике ГДД она должна прерывать поедание и царапать.
-                Debug.Log("ПОЦАРАПАЮ ПАДЛА!");
-            }
+            EatFood(true);
         }
 
         private void BehaviourEatAllQuickly()
         {
             SetSpeed(CatSpeed.Fast);
             animator.speed = 3f;
-            EatFood();
+            EatFood(false);
         }
 
         private void BehaviourScratch()
@@ -388,15 +430,15 @@ namespace Plus.CatSimulator
 
         private void BehaviourRunAndPiss()
         {
-            behaviourWasFinished = true;
+            behaviourWasFinished = true;            
 
             if (!behaviourWasStarted)
             {
                 behaviourWasStarted = true;
-                destinationWasReached = false;                
+                destinationWasReached = false;
 
-                var carpet = carpets.FirstOrDefault();
-                if (carpet is object)
+                currentCarpet = carpets.FirstOrDefault();
+                if (currentCarpet is object)
                 {
                     animator.SetBool("Walk", true);
                     SetSpeed(CatSpeed.Fast);
@@ -418,7 +460,10 @@ namespace Plus.CatSimulator
                     destinationWasReached = true;
                     animator.SetBool("Walk", false);
 
-                    // TODO: piss processing.
+                    if (currentCarpet is object)
+                    {
+                        currentCarpet.PissOnMe();
+                    }
                 }
             }
         }
