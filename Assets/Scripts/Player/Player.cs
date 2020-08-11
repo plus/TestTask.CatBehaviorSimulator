@@ -15,7 +15,9 @@ namespace Plus.CatSimulator
         public Vector3 Position => transform.position;
         public bool IsWalking { get; private set; }
 
+        #pragma warning disable 0649
         [SerializeField] private Animator animator;
+        #pragma warning restore 0649
 
         private bool isGoingToCat = false;
         private string currentAction = "";

@@ -6,11 +6,13 @@ namespace Plus.CatSimulator
 {
     public class UIController : MonoBehaviour
     {
+        #pragma warning disable 0649
         [SerializeField] private Text moodText;
         [SerializeField] private Text behaviourDescriptionText;
         [SerializeField] private Image imageMoodBad;
         [SerializeField] private Image imageMoodGood;
         [SerializeField] private Image imageMoodGreat;
+        #pragma warning restore 0649
 
         private ICat cat;
 

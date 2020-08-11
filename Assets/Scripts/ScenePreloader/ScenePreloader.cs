@@ -7,9 +7,12 @@ namespace Plus.CatSimulator
 {
     public class ScenePreloader : MonoBehaviour
     {
+        #pragma warning disable 0649
         [SerializeField] private Text TextLoading;
         [SerializeField] private Button PlayButton;
         [SerializeField] private Image ProgressLine;
+        #pragma warning disable 0649
+
         private bool buttonPressed;
         AsyncOperation asyncSceneLoading;
 

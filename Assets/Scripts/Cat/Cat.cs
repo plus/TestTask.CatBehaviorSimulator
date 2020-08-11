@@ -24,9 +24,7 @@ namespace Plus.CatSimulator
                 }                
             }
         }
-
         public string CurrentBehaviourDescription => currentBehaviour.BehaviourDescription;
-
         public Vector3 Position => transform.position;
 
         public event EventHandler<CatMoodArgs> MoodChange;
@@ -51,11 +49,11 @@ namespace Plus.CatSimulator
         private ICarpet currentCarpet;
         private System.Random random;
 
-        private readonly float distancePlayerIsClose = 1.5f;
-
+        #pragma warning disable 0649
         [SerializeField] private Animator animator;
         [SerializeField] private AudioClip clipPurr;
         [SerializeField] private AudioSource audioSource;
+        #pragma warning restore 0649
 
         private void Awake()
         {
@@ -63,17 +61,17 @@ namespace Plus.CatSimulator
             behaviours.Add(new CatBehaviour("Play", CatMood.Good, BehaviourRunSlowlyToTheBall, "Медленно бегает за мячиком", CatMood.Great));
             behaviours.Add(new CatBehaviour("Play", CatMood.Great, BehaviourRunLikeForestGump, "Носится как угорелая", CatMood.Great));
 
-            behaviours.Add(new CatBehaviour("Feed", CatMood.Bad, BehaviourEatAllAggressive, "все съедает, но если в это время подойти - поцарапает", CatMood.Good));
-            behaviours.Add(new CatBehaviour("Feed", CatMood.Good, BehaviourEatAllQuickly, "быстро все съедает", CatMood.Great));
-            behaviours.Add(new CatBehaviour("Feed", CatMood.Great, BehaviourEatAllQuickly, "быстро все съедает", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Feed", CatMood.Bad, BehaviourEatAllAggressive, "Все съедает, но если в это время подойти, — поцарапает", CatMood.Good));
+            behaviours.Add(new CatBehaviour("Feed", CatMood.Good, BehaviourEatAllQuickly, "Быстро все съедает", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Feed", CatMood.Great, BehaviourEatAllQuickly, "Быстро все съедает", CatMood.Great));
 
-            behaviours.Add(new CatBehaviour("Stroke", CatMood.Bad, BehaviourScratch, "царапает", CatMood.Bad));
-            behaviours.Add(new CatBehaviour("Stroke", CatMood.Good, BehaviourPurr, "мурлычет", CatMood.Great));
-            behaviours.Add(new CatBehaviour("Stroke", CatMood.Great, BehaviourPurrAndWagTail, "мурлычет и виляет хвостом", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Stroke", CatMood.Bad, BehaviourScratch, "Царапает", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Stroke", CatMood.Good, BehaviourPurr, "Мурлычет", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Stroke", CatMood.Great, BehaviourPurrAndWagTail, "Мурлычет и виляет хвостом", CatMood.Great));
 
-            behaviours.Add(new CatBehaviour("Kick", CatMood.Bad, BehaviourJumpAndBiteRightEar, "прыгает и кусает за правое ухо", CatMood.Bad));
-            behaviours.Add(new CatBehaviour("Kick", CatMood.Good, BehaviourRunAndPiss, "убегает на ковёр и писает", CatMood.Bad));
-            behaviours.Add(new CatBehaviour("Kick", CatMood.Great, BehaviourRunAnotherRoom, "убегает в другую комнату", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Kick", CatMood.Bad, BehaviourJumpAndBiteRightEar, "Прыгает и кусает за правое ухо", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Kick", CatMood.Good, BehaviourRunAndPiss, "Убегает на ковёр и писает", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Kick", CatMood.Great, BehaviourRunAnotherRoom, "Убегает в другую комнату", CatMood.Bad));
 
             Mood = behaviours.FirstOrDefault().MoodCondition;
             currentBehaviour = behaviours.First();
@@ -109,24 +107,14 @@ namespace Plus.CatSimulator
             if (!behaviourWasFinished) return;
 
             try
-            {
-                StopAllCoroutines();
-
+            {                
                 var behaviour = behaviours.Where(i => i.Name == actionName && i.MoodCondition == Mood).Single();
-                
+
+                StopAllCoroutines();
                 currentBehaviour = behaviour;
                 behaviourWasStarted = false;
                 SetSpeed(CatSpeed.Default);
-
-                animator.SetBool("Eat", false);
-                animator.SetBool("Walk", false);
-                animator.SetBool("Jump", false);
-                animator.SetBool("Meow", false);
-                animator.SetBool("Sit", false);
-                animator.SetBool("Tail", false);
-                animator.SetBool("Scratch", false);
-                animator.speed = 1;
-
+                SetAnimationsDefault();
                 audioSource.Stop();
 
                 Mood = behaviour.MoodResult;
@@ -146,6 +134,18 @@ namespace Plus.CatSimulator
             {
                 this.food.Enqueue(item);
             }
+        }
+
+        private void SetAnimationsDefault()
+        {
+            animator.SetBool("Eat", false);
+            animator.SetBool("Walk", false);
+            animator.SetBool("Jump", false);
+            animator.SetBool("Meow", false);
+            animator.SetBool("Sit", false);
+            animator.SetBool("Tail", false);
+            animator.SetBool("Scratch", false);
+            animator.speed = 1;
         }
 
         private void SetSpeed(CatSpeed speed)
@@ -170,6 +170,8 @@ namespace Plus.CatSimulator
             }
         }
 
+        #region Behaviours
+
         private void EatFood(bool isAggressive)
         {
             if (!behaviourWasStarted)
@@ -187,7 +189,8 @@ namespace Plus.CatSimulator
                     navMeshAgent.SetDestination(firstFood.Position);
                     animator.SetBool("Walk", true);
 
-                    if (isAggressive && player.IsWalking &&  ((transform.position - player.Position).magnitude < 1.5f))
+
+                    if (isAggressive && player.IsWalking && transform.position.IsClose(player.Position, CloseType.Action))
                     {
                         navMeshAgent.SetDestination(transform.position);
                         animator.SetBool("Walk", false);
@@ -195,7 +198,7 @@ namespace Plus.CatSimulator
                         navMeshAgent.SetDestination(firstFood.Position);
                         animator.SetBool("Walk", true);
                     }
-                    else if ((transform.position - firstFood.Position).magnitude < 1.5f)
+                    else if (transform.position.IsClose(firstFood.Position, CloseType.VeryClose))
                     {
                         animator.SetBool("Walk", false);
                         animator.SetBool("Eat", true);
@@ -223,8 +226,8 @@ namespace Plus.CatSimulator
                 var time = Time.realtimeSinceStartup;
 
                 while (Time.realtimeSinceStartup - time < 3f)
-                {
-                    if (isAggressive && ((transform.position - player.Position).magnitude < 1.5f))
+                {                    
+                    if (isAggressive && player.IsWalking && transform.position.IsClose(player.Position, CloseType.Action))
                     {
                         yield return StartCoroutine(Scratching());
                     }
@@ -264,7 +267,6 @@ namespace Plus.CatSimulator
             }
         }
 
-        #region Behaviours
         private void BehaviourSitting()
         {
             behaviourWasFinished = true;
@@ -296,13 +298,7 @@ namespace Plus.CatSimulator
             {
                 while (true)
                 {
-                    float walkDistance = 10f;
-                    Vector3 randomDirection = UnityEngine.Random.insideUnitSphere * walkDistance;
-                    randomDirection += transform.position;
-                    NavMeshHit hit;
-                    NavMesh.SamplePosition(randomDirection, out hit, walkDistance, NavMesh.AllAreas);
-                    Vector3 finalPosition = hit.position;
-                    
+                    var finalPosition = navMeshAgent.RandomPosition(transform.position, 10f);
                     navMeshAgent.SetDestination(finalPosition);
 
                     yield return new WaitForSeconds(0.3f);
@@ -366,8 +362,8 @@ namespace Plus.CatSimulator
                 behaviourWasFinished = true;
                 behaviourWasStarted = true;
                 animator.SetBool("Jump", true);
-
-                if ((transform.position - player.Position).magnitude >= 1.5f)
+                
+                if (!transform.position.IsClose(player.Position, CloseType.Action))
                 {
                     navMeshAgent.updateRotation = true;
                     navMeshAgent.SetDestination(player.Position);
@@ -375,7 +371,7 @@ namespace Plus.CatSimulator
                 }       
                 else
                 {
-                    animator.Play("Base Layer.Jump", 0, 0.25f);
+                    animator.Play("Base Layer.Jump", 0, 0);
                 }
             }           
         }
@@ -406,7 +402,8 @@ namespace Plus.CatSimulator
 
             if (behaviourWasStarted && !destinationWasReached)
             {
-                if ((destinationPosition - transform.position).magnitude < 1.5f) // TODO: 1f magic
+                
+                if (transform.position.IsClose(destinationPosition, CloseType.VeryClose))
                 {
                     destinationWasReached = true;
                     animator.SetBool("Walk", false);
@@ -447,7 +444,8 @@ namespace Plus.CatSimulator
 
             if (behaviourWasStarted && !destinationWasReached)
             {
-                if ((destinationPosition - transform.position).magnitude <  1.5f) // TODO: 1f magic
+
+                if (transform.position.IsClose(destinationPosition, CloseType.VeryClose))
                 {
                     destinationWasReached = true;
                     animator.SetBool("Walk", false);
