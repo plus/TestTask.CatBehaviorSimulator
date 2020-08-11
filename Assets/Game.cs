@@ -15,7 +15,8 @@ namespace Plus.CatSimulator
 
         private void Start()
         {
-            cat = GameObject.FindObjectOfType<Cat>(); // TODO: check.
+            cat = GameObject.FindObjectOfType<Cat>();
+            if (cat is null) throw new Exception("<Cat> no found in scene");
             cat.MoodChange += Cat_MoodChange;
             cat.BehaviourUpdate += Cat_BehaviourUpdate;
 

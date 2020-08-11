@@ -127,6 +127,7 @@ namespace Plus.CatSimulator
         private bool destinationWasReached;
         private Vector3 destinationPosition;
         private ICarpet currentCarpet;
+        private System.Random random;
 
         private readonly float distancePlayerIsClose = 1.5f;
 
@@ -136,7 +137,6 @@ namespace Plus.CatSimulator
 
         private void Awake()
         {
-            // TODO: move to dictionary?
             behaviours.Add(new CatBehaviour("Play", CatMood.Bad, BehaviourSitting, "Сидит на месте", CatMood.Bad));
             behaviours.Add(new CatBehaviour("Play", CatMood.Good, BehaviourRunSlowlyToTheBall, "Медленно бегает за мячиком", CatMood.Great));
             behaviours.Add(new CatBehaviour("Play", CatMood.Great, BehaviourRunLikeForestGump, "Носится как угорелая", CatMood.Great));
@@ -153,23 +153,33 @@ namespace Plus.CatSimulator
             behaviours.Add(new CatBehaviour("Kick", CatMood.Good, BehaviourRunAndPiss, "убегает на ковёр и писает", CatMood.Bad));
             behaviours.Add(new CatBehaviour("Kick", CatMood.Great, BehaviourRunAnotherRoom, "убегает в другую комнату", CatMood.Bad));
 
-            // TODO: Default.
-            Mood = behaviours.First().MoodCondition;
-            currentBehaviour = behaviours.First();            
+            Mood = behaviours.FirstOrDefault().MoodCondition;
+            currentBehaviour = behaviours.First();
+
+            random = new System.Random();
         }
 
         private void Start()
         {
             navMeshAgent = transform.GetComponent<NavMeshAgent>();
+
             carpets = GameObject.FindObjectsOfType<Carpet>();
+            if (carpets.Length == 0) throw new Exception("<Carpet> no found in scene");
+
             ball = GameObject.FindObjectOfType<Ball>();
+            if (ball is null) throw new Exception("<Ball> no found in scene");
+
             rooms = GameObject.FindObjectsOfType<Room>();
+            if (rooms.Length < 2) throw new Exception("<Room> count < 2 in scene");
+
             player = GameObject.FindObjectOfType<Player>();
+            if (player is null) throw new Exception("<Player> no found in scene");
         }
 
         private void Update()
         {
-            currentBehaviour.Behaviour();
+            if (currentBehaviour is object)
+                currentBehaviour.Behaviour();
         }
 
         public void TakeAction(string actionName)
@@ -393,7 +403,12 @@ namespace Plus.CatSimulator
         private void BehaviourScratch()
         {
             behaviourWasFinished = true;
-            animator.SetBool("Scratch", true);
+
+            navMeshAgent.updateRotation = false;
+            var targetRotation = Quaternion.LookRotation(player.Position - transform.position, Vector3.up);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, 3f);
+            animator.SetBool("Scratch", true);            
+            navMeshAgent.updateRotation = true;
         }
 
         private void BehaviourPurr()
@@ -437,14 +452,13 @@ namespace Plus.CatSimulator
                 behaviourWasStarted = true;
                 destinationWasReached = false;
 
-                currentCarpet = carpets.FirstOrDefault();
+                currentCarpet = (carpets.Count() > 0) ? carpets.ElementAt(random.Next(carpets.Count())) : null;
                 if (currentCarpet is object)
                 {
                     animator.SetBool("Walk", true);
                     SetSpeed(CatSpeed.Fast);
 
-                    // TODO: random carpet (not first)?
-                    destinationPosition = carpets.First().Transform.position;
+                    destinationPosition = currentCarpet.Transform.position;
                     navMeshAgent.SetDestination(destinationPosition);
                 }
                 else
@@ -504,6 +518,5 @@ namespace Plus.CatSimulator
             }
         }
         #endregion
-
     }
 }
