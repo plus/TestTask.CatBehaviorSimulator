@@ -6,5 +6,7 @@ namespace Plus.CatSimulator
     {
         Vector3 Position { get; }
         void DoAction(string actionName);
+
+        bool IsWalking { get; }
     }
 }

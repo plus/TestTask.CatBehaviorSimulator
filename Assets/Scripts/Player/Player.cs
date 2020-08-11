@@ -13,7 +13,8 @@ namespace Plus.CatSimulator
         private ICat cat;
 
         public Vector3 Position => transform.position;
-        
+        public bool IsWalking { get; private set; }
+
         [SerializeField] private Animator animator;
 
         private bool isGoingToCat = false;
@@ -45,12 +46,14 @@ namespace Plus.CatSimulator
                         navMeshAgent.SetDestination(destinationPoint);
 
                         animator.SetBool("Walk", true);
+                        IsWalking = true;
                     }
                 }
 
                 if ((destinationPoint - transform.position).magnitude < 1f)
                 {
                     animator.SetBool("Walk", false);
+                    IsWalking = false;
                 }
             }
         }

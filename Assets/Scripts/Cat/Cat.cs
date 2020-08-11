@@ -187,7 +187,7 @@ namespace Plus.CatSimulator
                     navMeshAgent.SetDestination(firstFood.Position);
                     animator.SetBool("Walk", true);
 
-                    if (isAggressive && ((transform.position - player.Position).magnitude < 1.5f))
+                    if (isAggressive && player.IsWalking &&  ((transform.position - player.Position).magnitude < 1.5f))
                     {
                         navMeshAgent.SetDestination(transform.position);
                         animator.SetBool("Walk", false);
@@ -366,10 +366,18 @@ namespace Plus.CatSimulator
                 behaviourWasFinished = true;
                 behaviourWasStarted = true;
                 animator.SetBool("Jump", true);
-                navMeshAgent.updateRotation = true;
 
-                navMeshAgent.SetDestination(player.Position);
-            }
+                if ((transform.position - player.Position).magnitude >= 1.5f)
+                {
+                    navMeshAgent.updateRotation = true;
+                    navMeshAgent.SetDestination(player.Position);
+                    animator.SetBool("Jump", true);
+                }       
+                else
+                {
+                    animator.Play("Base Layer.Jump", 0, 0.25f);
+                }
+            }           
         }
 
         private void BehaviourRunAndPiss()
