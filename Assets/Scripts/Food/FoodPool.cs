@@ -4,29 +4,6 @@ using System.Linq;
 
 namespace Plus.CatSimulator
 {
-    public interface IFoodPool
-    {
-        IFood[] GetFoods();
-    }
-
-    public interface IFoodPoolElement
-    {
-        IFood Food { get; }
-        bool Spawned { get; set; }
-    }
-
-    public class FoodPoolElement : IFoodPoolElement
-    {
-        public IFood Food { get; }
-        public bool Spawned { get; set; }    
-
-        public FoodPoolElement(IFood food, bool spawned)
-        {
-            Food = food;
-            Spawned = spawned;
-        }
-    }
-
     public class FoodPool : MonoBehaviour, IFoodPool
     {
         private IFood[] foods;
@@ -40,7 +17,7 @@ namespace Plus.CatSimulator
             for (int i = 0; i < foods.Length; i++)
             {
                 foods[i].Eat += Food_Eat;
-                foods[i].Transform.gameObject.SetActive(false);
+                foods[i].SetActive(false);
                 
                 poolElements[i] = new FoodPoolElement(foods[i], false);
             }
@@ -53,7 +30,7 @@ namespace Plus.CatSimulator
             for (int i = 0; i < poolElements.Length; i++)
             {
                 poolElements[i].Spawned = true;
-                poolElements[i].Food.Transform.gameObject.SetActive(true);
+                poolElements[i].Food.SetActive(true);
             }
 
             return result;
@@ -67,7 +44,7 @@ namespace Plus.CatSimulator
 
         private void RemoveFood(IFoodPoolElement poolElement)
         {
-            poolElement.Food.Transform.gameObject.SetActive(false);
+            poolElement.Food.SetActive(false);
             poolElement.Spawned = false;
         }
     }

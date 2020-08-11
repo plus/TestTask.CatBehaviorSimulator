@@ -1,36 +1,9 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 
 namespace Plus.CatSimulator
 {
-    public static class NavMeshExtensions
-    {
-        public static Vector3 RandomPosition(this NavMeshAgent agent, Vector3 basePosition, float radius)
-        {
-            var randDirection = Random.insideUnitSphere * radius;
-            randDirection += basePosition;
-            NavMeshHit navHit;
-            if (NavMesh.SamplePosition(randDirection, out navHit, radius, -1))
-            {
-                return navHit.position;
-            }
-            else
-            {
-                return basePosition;
-            }            
-        }
-    }
-
-    public interface IPlayer
-    {
-        Vector3 Position { get; }
-        void DoAction(string actionName);
-    }
-
-
     [RequireComponent(typeof(NavMeshAgent))]
     public class Player : MonoBehaviour, IPlayer
     {
@@ -91,7 +64,7 @@ namespace Plus.CatSimulator
         {
             isGoingToCat = true;
             currentAction = actionName;
-            navMeshAgent.SetDestination(cat.Transform.position);
+            navMeshAgent.SetDestination(cat.Position);
             animator.SetBool("Walk", true);
 
             while (!CheckCatReached())
@@ -110,19 +83,19 @@ namespace Plus.CatSimulator
             animator.SetBool("Walk", false);
 
             navMeshAgent.updateRotation = false;
-            transform.LookAt(cat.Transform.position, Vector3.up);
+            transform.LookAt(cat.Position, Vector3.up);
             navMeshAgent.updateRotation = true;
         }
 
         private bool CheckCatReached()
         {
-            if ((cat.Transform.position - transform.position).magnitude < 3f)
+            if ((cat.Position - transform.position).magnitude < 3f)
             {
                 return true;
             }
             else
             {
-                navMeshAgent.SetDestination(cat.Transform.position);
+                navMeshAgent.SetDestination(cat.Position);
             }
 
             return false;
@@ -134,8 +107,8 @@ namespace Plus.CatSimulator
 
             foreach (var item in foods)
             {
-                var randomPoint = navMeshAgent.RandomPosition(cat.Transform.position, 5f);
-                item.Transform.position = randomPoint;
+                var randomPoint = navMeshAgent.RandomPosition(cat.Position, 5f);
+                item.Position = randomPoint;
             }
             cat.TakeFood(foods);
         }

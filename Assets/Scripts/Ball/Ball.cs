@@ -1,18 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 
 namespace Plus.CatSimulator
 {
-    public interface IBall
-    {
-        Transform Transform { get; }
-    }
-
     public class Ball : MonoBehaviour, IBall
     {
-        public Transform Transform => transform;
+        public Vector3 Position => transform.position;
 
         private void Start()
         {

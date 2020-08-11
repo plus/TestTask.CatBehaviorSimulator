@@ -6,85 +6,7 @@ using UnityEngine;
 using UnityEngine.AI;
 
 namespace Plus.CatSimulator
-{
-    public interface ICatBehaviour
-    {
-        string Name { get; }
-        CatMood MoodCondition { get; }
-        Action Behaviour { get; }
-        string BehaviourDescription { get; }
-        CatMood MoodResult { get; }
-    }
-
-    public class CatBehaviour : ICatBehaviour
-    {
-        public string Name { get; private set; }
-
-        public CatMood MoodCondition { get; private set; }
-
-        public Action Behaviour { get; private set; }
-
-        public string BehaviourDescription { get; }
-
-        public CatMood MoodResult { get; private set; }
-
-        public CatBehaviour(string name, CatMood moodCondition, Action behaviour, string behaviourDescription, CatMood moodResult)
-        {
-            Name = name;
-            MoodCondition = moodCondition;
-            Behaviour = behaviour;
-            BehaviourDescription = behaviourDescription;
-            MoodResult = moodResult;
-        }
-    }
-
-    public enum CatMood
-    {
-        Bad = 1,
-        Good = 2,
-        Great = 3
-    }
-
-    public class CatMoodArgs : EventArgs
-    {
-        public CatMood Mood { get; private set; }
-
-        public CatMoodArgs(CatMood mood)
-        {
-            Mood = mood;
-        }
-    }
-
-    public class CatBehaviourArgs : EventArgs
-    {
-        public string BehaviourDescription { get; private set; }
-
-        public CatBehaviourArgs(string behaviourDescription)
-        {
-            BehaviourDescription = behaviourDescription;
-        }
-    }
-
-    public interface ICat
-    {
-        CatMood Mood { get; }
-        string CurrentBehaviourDescription { get; }
-        Transform Transform { get; }
-
-        event EventHandler<CatMoodArgs> MoodChange;
-        event EventHandler<CatBehaviourArgs> BehaviourUpdate;
-
-        void TakeAction(string actionName);
-        void TakeFood(IFood[] food);
-    }
-
-    public enum CatSpeed
-    {
-        Default = 0,
-        Fast = 1,
-        SuperFast = 2
-    }
-
+{   
     [RequireComponent(typeof(NavMeshAgent), typeof(AudioSource))]
     public class Cat : MonoBehaviour, ICat
     {
@@ -105,7 +27,7 @@ namespace Plus.CatSimulator
 
         public string CurrentBehaviourDescription => currentBehaviour.BehaviourDescription;
 
-        public Transform Transform => transform;
+        public Vector3 Position => transform.position;
 
         public event EventHandler<CatMoodArgs> MoodChange;
         public event EventHandler<CatBehaviourArgs> BehaviourUpdate;
@@ -262,7 +184,7 @@ namespace Plus.CatSimulator
                 while (food.Count != 0)
                 {
                     var firstFood = food.Peek();
-                    navMeshAgent.SetDestination(firstFood.Transform.position);
+                    navMeshAgent.SetDestination(firstFood.Position);
                     animator.SetBool("Walk", true);
 
                     if (isAggressive && ((transform.position - player.Position).magnitude < 1.5f))
@@ -270,10 +192,10 @@ namespace Plus.CatSimulator
                         navMeshAgent.SetDestination(transform.position);
                         animator.SetBool("Walk", false);
                         yield return StartCoroutine(Scratching());
-                        navMeshAgent.SetDestination(firstFood.Transform.position);
+                        navMeshAgent.SetDestination(firstFood.Position);
                         animator.SetBool("Walk", true);
                     }
-                    else if ((transform.position - firstFood.Transform.position).magnitude < 1.5f)
+                    else if ((transform.position - firstFood.Position).magnitude < 1.5f)
                     {
                         animator.SetBool("Walk", false);
                         animator.SetBool("Eat", true);
@@ -354,7 +276,7 @@ namespace Plus.CatSimulator
             behaviourWasFinished = true;
 
             animator.SetBool("Walk", true);
-            navMeshAgent.SetDestination(ball.Transform.position);
+            navMeshAgent.SetDestination(ball.Position);
         }
 
         private void BehaviourRunLikeForestGump()
@@ -465,7 +387,7 @@ namespace Plus.CatSimulator
                     animator.SetBool("Walk", true);
                     SetSpeed(CatSpeed.Fast);
 
-                    destinationPosition = currentCarpet.Transform.position;
+                    destinationPosition = currentCarpet.Position;
                     navMeshAgent.SetDestination(destinationPosition);
                 }
                 else

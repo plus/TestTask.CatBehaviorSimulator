@@ -1,18 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Plus.CatSimulator
 {
-    public interface ICarpet
-    {
-        Transform Transform { get; }
-        void PissOnMe();
-    }
-
     public class Carpet : MonoBehaviour, ICarpet
     {
-        public Transform Transform => transform;
+        public Vector3 Position => transform.position;
 
         [SerializeField] private Transform puddle;
         private float puddleScale = 0f;

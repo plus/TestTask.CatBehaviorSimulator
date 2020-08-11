@@ -1,16 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 
 namespace Plus.CatSimulator
 {
-    public interface IRoom
-    {
-        Vector3 Center { get; }
-        int NavMeshAreaMask { get; }
-    }
-
     [RequireComponent(typeof(NavMeshModifierVolume))]
     public class Room : MonoBehaviour, IRoom
     {
