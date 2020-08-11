@@ -29,6 +29,7 @@ namespace Plus.CatSimulator
     {
         void SpawnSomeFood();
         Vector3 Position { get; }
+        void DoAction(string actionName);
     }
 
 
@@ -42,6 +43,9 @@ namespace Plus.CatSimulator
 
         public Vector3 Position => transform.position;
 
+        private bool isGoingToCat = false;
+        private string currentAction = "";
+
         private void Start()
         {
             cachedCamera = Camera.main;
@@ -52,14 +56,21 @@ namespace Plus.CatSimulator
 
         private void Update()
         {
-            if (Input.GetMouseButtonDown(0))
+            if (isGoingToCat)
             {
-                var ray = cachedCamera.ScreenPointToRay(Input.mousePosition);
-                RaycastHit hit;
-
-                if (Physics.Raycast(ray, out hit))
+                CheckCatReached();
+            }
+            else
+            {
+                if (Input.GetMouseButtonDown(0))
                 {
-                    navMeshAgent.SetDestination(hit.point);
+                    var ray = cachedCamera.ScreenPointToRay(Input.mousePosition);
+                    RaycastHit hit;
+
+                    if (Physics.Raycast(ray, out hit))
+                    {
+                        navMeshAgent.SetDestination(hit.point);
+                    }
                 }
             }
         }
@@ -74,6 +85,29 @@ namespace Plus.CatSimulator
                 item.Transform.position = randomPoint;
             }            
             cat.TakeFood(foods);
+        }
+
+        public void DoAction(string actionName)
+        {
+            isGoingToCat = true;
+            currentAction = actionName;
+            navMeshAgent.SetDestination(cat.Transform.position);
+
+            CheckCatReached();
+        }
+
+        private void CheckCatReached()
+        {
+            if ((cat.Transform.position - transform.position).magnitude < 3f)
+            {
+                isGoingToCat = false;
+                cat.TakeAction(currentAction);
+                navMeshAgent.SetDestination(transform.position);
+
+                navMeshAgent.updateRotation = false;
+                transform.LookAt(cat.Transform.position, Vector3.up);
+                navMeshAgent.updateRotation = true;
+            }
         }
     }
 }

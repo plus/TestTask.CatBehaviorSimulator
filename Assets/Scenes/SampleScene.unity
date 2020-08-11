@@ -303,8 +303,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 781046225}
-        m_MethodName: TakeAction
+      - m_Target: {fileID: 1194567833}
+        m_MethodName: DoAction
         m_Mode: 5
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -543,8 +543,8 @@ MonoBehaviour:
           m_StringArgument: Feed
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 781046225}
-        m_MethodName: TakeAction
+      - m_Target: {fileID: 1194567833}
+        m_MethodName: DoAction
         m_Mode: 5
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -916,8 +916,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 781046225}
-        m_MethodName: TakeAction
+      - m_Target: {fileID: 1194567833}
+        m_MethodName: DoAction
         m_Mode: 5
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1286,8 +1286,8 @@ Light:
   serializedVersion: 10
   m_Type: 1
   m_Shape: 0
-  m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
-  m_Intensity: 1.56
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Intensity: 1.74
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -1296,7 +1296,7 @@ Light:
     m_Type: 2
     m_Resolution: -1
     m_CustomResolution: -1
-    m_Strength: 1
+    m_Strength: 0.513
     m_Bias: 0.05
     m_NormalBias: 0.4
     m_NearPlane: 0.2
@@ -1343,13 +1343,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 705507993}
-  m_LocalRotation: {x: 0.4127514, y: 0.6440161, z: -0.3482575, w: 0.5418452}
+  m_LocalRotation: {x: 0.40271032, y: 0.6375009, z: -0.36004758, w: 0.54934764}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 63.619003, y: -247.47198, z: -339.689}
+  m_LocalEulerAnglesHint: {x: 64.358, y: -251.51999, z: -344.194}
 --- !u!1 &762031792
 GameObject:
   m_ObjectHideFlags: 0
@@ -2761,8 +2761,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 781046225}
-        m_MethodName: TakeAction
+      - m_Target: {fileID: 1194567833}
+        m_MethodName: DoAction
         m_Mode: 5
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
