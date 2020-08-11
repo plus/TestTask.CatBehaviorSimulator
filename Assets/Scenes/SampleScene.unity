@@ -1818,6 +1818,8 @@ MonoBehaviour:
   animator: {fileID: 6258255}
   clipPurr: {fileID: 8300000, guid: d9107c8e4a44b9f4ca588d1ead2a8089, type: 3}
   audioSource: {fileID: 781046226}
+  navMeshSpeedConfigure: {fileID: 11400000, guid: 1e3facaacff15994a9a03f3b9b4b1c90,
+    type: 2}
 --- !u!82 &781046226
 AudioSource:
   m_ObjectHideFlags: 0

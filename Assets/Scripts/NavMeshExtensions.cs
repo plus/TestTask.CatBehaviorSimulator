@@ -11,18 +11,20 @@ namespace Plus.CatSimulator
 
     public static class NavMeshExtensions
     {
-        public static Vector3 RandomPosition(this NavMeshAgent agent, Vector3 basePosition, float radius)
+        public static bool RandomPosition(this NavMeshAgent agent, Vector3 basePosition, float radius, out Vector3 position)
         {
             var randDirection = Random.insideUnitSphere * radius;
             randDirection += basePosition;
             NavMeshHit navHit;
             if (NavMesh.SamplePosition(randDirection, out navHit, radius, -1))
             {
-                return navHit.position;
+                position = navHit.position;
+                return true;
             }
             else
             {
-                return basePosition;
+                position = Vector3.zero;
+                return false;
             }
         }
 

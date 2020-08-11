@@ -53,7 +53,12 @@ namespace Plus.CatSimulator
         [SerializeField] private Animator animator;
         [SerializeField] private AudioClip clipPurr;
         [SerializeField] private AudioSource audioSource;
+        [SerializeField] private CatSpeedConfigure navMeshSpeedConfigure;
         #pragma warning restore 0649
+
+        private readonly float timeFeedEating = 3f;
+        private readonly float timeScratching = 3f;
+        private readonly float timeRunLikeForestGumpChangeDirection = 0.5f;
 
         private void Awake()
         {
@@ -153,19 +158,19 @@ namespace Plus.CatSimulator
             switch (speed)
             {
                 case CatSpeed.Default:
-                    navMeshAgent.acceleration = 8f;
-                    navMeshAgent.speed = 3.5f;
-                    navMeshAgent.angularSpeed = 300f;
+                    navMeshAgent.acceleration = navMeshSpeedConfigure.DefaultAcceleration;
+                    navMeshAgent.speed = navMeshSpeedConfigure.DefaultSpeed;
+                    navMeshAgent.angularSpeed = navMeshSpeedConfigure.DefaultAngularSpeed;
                     break;
                 case CatSpeed.Fast:
-                    navMeshAgent.acceleration = 50f;
-                    navMeshAgent.speed = 25f;
-                    navMeshAgent.angularSpeed = 600f;
+                    navMeshAgent.acceleration = navMeshSpeedConfigure.FastAcceleration;
+                    navMeshAgent.speed = navMeshSpeedConfigure.FastSpeed;
+                    navMeshAgent.angularSpeed = navMeshSpeedConfigure.FastAngularSpeed;
                     break;
                 case CatSpeed.SuperFast:
-                    navMeshAgent.acceleration = 200f;
-                    navMeshAgent.speed = 50f;
-                    navMeshAgent.angularSpeed = 1000f;
+                    navMeshAgent.acceleration = navMeshSpeedConfigure.SuperFastAcceleration;
+                    navMeshAgent.speed = navMeshSpeedConfigure.SuperFastSpeed;
+                    navMeshAgent.angularSpeed = navMeshSpeedConfigure.SuperFastAngularSpeed;
                     break;
             }
         }
@@ -225,7 +230,7 @@ namespace Plus.CatSimulator
             {
                 var time = Time.realtimeSinceStartup;
 
-                while (Time.realtimeSinceStartup - time < 3f)
+                while (Time.realtimeSinceStartup - time < timeFeedEating)
                 {                    
                     if (isAggressive && player.IsWalking && transform.position.IsClose(player.Position, CloseType.Action))
                     {
@@ -243,7 +248,7 @@ namespace Plus.CatSimulator
                 animator.SetBool("Eat", false);
                 animator.SetBool("Scratch", true);
 
-                yield return StartCoroutine(WaitAndRotate(3f));
+                yield return StartCoroutine(WaitAndRotate(timeScratching));
 
                 animator.SetBool("Scratch", false);
                 animator.SetBool("Eat", eatBefore);
@@ -298,10 +303,11 @@ namespace Plus.CatSimulator
             {
                 while (true)
                 {
-                    var finalPosition = navMeshAgent.RandomPosition(transform.position, 10f);
+                    Vector3 finalPosition;
+                    navMeshAgent.RandomPosition(transform.position, 10f, out finalPosition);
                     navMeshAgent.SetDestination(finalPosition);
 
-                    yield return new WaitForSeconds(0.3f);
+                    yield return new WaitForSeconds(timeRunLikeForestGumpChangeDirection);
                 }                
             }
         }

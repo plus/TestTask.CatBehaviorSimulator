@@ -112,7 +112,8 @@ namespace Plus.CatSimulator
 
             foreach (var item in foods)
             {
-                var randomPoint = navMeshAgent.RandomPosition(cat.Position, 5f);
+                Vector3 randomPoint;
+                navMeshAgent.RandomPosition(cat.Position, 5f, out randomPoint);
                 item.Position = randomPoint;
             }
             cat.TakeFood(foods);
