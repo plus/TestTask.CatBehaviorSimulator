@@ -6,7 +6,7 @@ namespace Plus.CatSimulator
     {
         string Name { get; }
         CatMood MoodCondition { get; }
-        Action Behaviour { get; }
+        ICatAction CatAction { get; }
         string BehaviourDescription { get; }
         CatMood MoodResult { get; }
     }

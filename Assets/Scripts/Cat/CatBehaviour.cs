@@ -9,17 +9,17 @@ namespace Plus.CatSimulator
 
         public CatMood MoodCondition { get; private set; }
 
-        public Action Behaviour { get; private set; }
+        public ICatAction CatAction { get; private set; }
 
         public string BehaviourDescription { get; }
 
         public CatMood MoodResult { get; private set; }
 
-        public CatBehaviour(string name, CatMood moodCondition, Action behaviour, string behaviourDescription, CatMood moodResult)
+        public CatBehaviour(string name, CatMood moodCondition, ICatAction catAction, string behaviourDescription, CatMood moodResult)
         {
             Name = name;
             MoodCondition = moodCondition;
-            Behaviour = behaviour;
+            CatAction = catAction;
             BehaviourDescription = behaviourDescription;
             MoodResult = moodResult;
         }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -42,49 +41,64 @@ namespace Plus.CatSimulator
 
         private Queue<IFood> food = new Queue<IFood>();
         
-        private bool behaviourWasStarted;
-        private bool behaviourWasFinished;
-        private bool destinationWasReached;
-        private Vector3 destinationPosition;
-        private ICarpet currentCarpet;
-        private System.Random random;
-
         #pragma warning disable 0649
         [SerializeField] private Animator animator;
         [SerializeField] private AudioClip clipPurr;
         [SerializeField] private AudioSource audioSource;
         [SerializeField] private CatSpeedConfigure navMeshSpeedConfigure;
         #pragma warning restore 0649
-
-        private readonly float timeFeedEating = 3f;
-        private readonly float timeScratching = 3f;
-        private readonly float timeRunLikeForestGumpChangeDirection = 0.5f;
-
-        private void Awake()
-        {
-            behaviours.Add(new CatBehaviour("Play", CatMood.Bad, BehaviourSitting, "Сидит на месте", CatMood.Bad));
-            behaviours.Add(new CatBehaviour("Play", CatMood.Good, BehaviourRunSlowlyToTheBall, "Медленно бегает за мячиком", CatMood.Great));
-            behaviours.Add(new CatBehaviour("Play", CatMood.Great, BehaviourRunLikeForestGump, "Носится как угорелая", CatMood.Great));
-
-            behaviours.Add(new CatBehaviour("Feed", CatMood.Bad, BehaviourEatAllAggressive, "Все съедает, но если в это время подойти, — поцарапает", CatMood.Good));
-            behaviours.Add(new CatBehaviour("Feed", CatMood.Good, BehaviourEatAllQuickly, "Быстро все съедает", CatMood.Great));
-            behaviours.Add(new CatBehaviour("Feed", CatMood.Great, BehaviourEatAllQuickly, "Быстро все съедает", CatMood.Great));
-
-            behaviours.Add(new CatBehaviour("Stroke", CatMood.Bad, BehaviourScratch, "Царапает", CatMood.Bad));
-            behaviours.Add(new CatBehaviour("Stroke", CatMood.Good, BehaviourPurr, "Мурлычет", CatMood.Great));
-            behaviours.Add(new CatBehaviour("Stroke", CatMood.Great, BehaviourPurrAndWagTail, "Мурлычет и виляет хвостом", CatMood.Great));
-
-            behaviours.Add(new CatBehaviour("Kick", CatMood.Bad, BehaviourJumpAndBiteRightEar, "Прыгает и кусает за правое ухо", CatMood.Bad));
-            behaviours.Add(new CatBehaviour("Kick", CatMood.Good, BehaviourRunAndPiss, "Убегает на ковёр и писает", CatMood.Bad));
-            behaviours.Add(new CatBehaviour("Kick", CatMood.Great, BehaviourRunAnotherRoom, "Убегает в другую комнату", CatMood.Bad));
-
-            Mood = behaviours.FirstOrDefault().MoodCondition;
-            currentBehaviour = behaviours.First();
-
-            random = new System.Random();
-        }
+       
 
         private void Start()
+        {
+            Initialize();
+            InitializeCatBehaviours();
+        }
+
+        private void Update()
+        {
+            if (currentBehaviour is object)
+                currentBehaviour.CatAction.Run();
+        }
+
+        public void TakeAction(string actionName)
+        {
+            if (!currentBehaviour.CatAction.BehaviourWasFinished) return;
+
+            try
+            {
+                var behaviour = behaviours.Where(i => i.Name == actionName && i.MoodCondition == Mood).Single();
+                behaviour.CatAction.Reset();
+
+                StopAllCoroutines();
+                currentBehaviour = behaviour;
+                SetSpeed(CatSpeed.Default);
+                SetAnimationsDefault();
+                audioSource.Stop();
+
+                Mood = behaviour.MoodResult;
+
+                BehaviourUpdate?.Invoke(this, new CatBehaviourArgs(behaviour.BehaviourDescription));
+
+                if (currentBehaviour is object)
+                    currentBehaviour.CatAction.Run();
+            }
+            catch (Exception)
+            {
+                Debug.Log($"action: \"{actionName}\" and MoodCondition: \"{Mood}\" not found in cat's behaviours list. Or your list of behaviours is incorrect");
+                throw;
+            }  
+        }
+
+        public void TakeFood(IFood[] food)
+        {
+            foreach (var item in food)
+            {
+                this.food.Enqueue(item);
+            }
+        }
+
+        private void Initialize()
         {
             navMeshAgent = transform.GetComponent<NavMeshAgent>();
 
@@ -101,44 +115,28 @@ namespace Plus.CatSimulator
             if (player is null) throw new Exception("<Player> no found in scene");
         }
 
-        private void Update()
+        private void InitializeCatBehaviours()
         {
-            if (currentBehaviour is object)
-                currentBehaviour.Behaviour();
-        }
+            var catParams = new CatParams(animator, navMeshAgent, ball, transform, player, clipPurr, audioSource, navMeshSpeedConfigure, carpets, rooms, food);
 
-        public void TakeAction(string actionName)
-        {
-            if (!behaviourWasFinished) return;
+            behaviours.Add(new CatBehaviour("Play", CatMood.Bad, new CatActionSit(catParams), "Сидит на месте", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Play", CatMood.Good, new CatActionRunSlowlyToTheBall(catParams), "Медленно бегает за мячиком", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Play", CatMood.Great, new CatActionRunLikeForestGump(catParams), "Носится как угорелая", CatMood.Great));
 
-            try
-            {                
-                var behaviour = behaviours.Where(i => i.Name == actionName && i.MoodCondition == Mood).Single();
+            behaviours.Add(new CatBehaviour("Feed", CatMood.Bad, new CatActionEatAll(catParams, true), "Все съедает, но если в это время подойти, — поцарапает", CatMood.Good));
+            behaviours.Add(new CatBehaviour("Feed", CatMood.Good, new CatActionEatAll(catParams), "Быстро все съедает", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Feed", CatMood.Great, new CatActionEatAll(catParams), "Быстро все съедает", CatMood.Great));
 
-                StopAllCoroutines();
-                currentBehaviour = behaviour;
-                behaviourWasStarted = false;
-                SetSpeed(CatSpeed.Default);
-                SetAnimationsDefault();
-                audioSource.Stop();
+            behaviours.Add(new CatBehaviour("Stroke", CatMood.Bad, new CatActionScratch(catParams), "Царапает", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Stroke", CatMood.Good, new CatActionPurr(catParams), "Мурлычет", CatMood.Great));
+            behaviours.Add(new CatBehaviour("Stroke", CatMood.Great, new CatActionPurrAndWagTail(catParams), "Мурлычет и виляет хвостом", CatMood.Great));
 
-                Mood = behaviour.MoodResult;
+            behaviours.Add(new CatBehaviour("Kick", CatMood.Bad, new CatActionJumpAndBiteRightEar(catParams), "Прыгает и кусает за правое ухо", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Kick", CatMood.Good, new CatActionRunAndPiss(catParams), "Убегает на ковёр и писает", CatMood.Bad));
+            behaviours.Add(new CatBehaviour("Kick", CatMood.Great, new CatActionRunAnotherRoom(catParams), "Убегает в другую комнату", CatMood.Bad));
 
-                BehaviourUpdate?.Invoke(this, new CatBehaviourArgs(behaviour.BehaviourDescription));
-            }
-            catch (Exception)
-            {
-                Debug.Log($"action: \"{actionName}\" and MoodCondition: \"{Mood}\" not found in cat's behaviours list. Or your list of behaviours is incorrect");
-                throw;
-            }  
-        }
-
-        public void TakeFood(IFood[] food)
-        {
-            foreach (var item in food)
-            {
-                this.food.Enqueue(item);
-            }
+            currentBehaviour = behaviours.First();
+            Mood = currentBehaviour.MoodCondition;
         }
 
         private void SetAnimationsDefault()
@@ -174,290 +172,5 @@ namespace Plus.CatSimulator
                     break;
             }
         }
-
-        #region Behaviours
-
-        private void EatFood(bool isAggressive)
-        {
-            if (!behaviourWasStarted)
-            {
-                behaviourWasFinished = false;
-                behaviourWasStarted = true;
-                StartCoroutine(GoAndEat());
-            }
-
-            IEnumerator GoAndEat()
-            {
-                while (food.Count != 0)
-                {
-                    var firstFood = food.Peek();
-                    navMeshAgent.SetDestination(firstFood.Position);
-                    animator.SetBool("Walk", true);
-
-
-                    if (isAggressive && player.IsWalking && transform.position.IsClose(player.Position, CloseType.Action))
-                    {
-                        navMeshAgent.SetDestination(transform.position);
-                        animator.SetBool("Walk", false);
-                        yield return StartCoroutine(Scratching());
-                        navMeshAgent.SetDestination(firstFood.Position);
-                        animator.SetBool("Walk", true);
-                    }
-                    else if (transform.position.IsClose(firstFood.Position, CloseType.VeryClose))
-                    {
-                        animator.SetBool("Walk", false);
-                        animator.SetBool("Eat", true);
-
-                        yield return StartCoroutine(Eating());
-                        firstFood.EatMe();
-                        food.Dequeue();
-
-                        animator.SetBool("Eat", false);
-                    }
-                    else
-                    {
-                        yield return null;
-                    }
-                }
-
-                if (food.Count == 0)
-                {
-                    behaviourWasFinished = true;
-                }                
-            }
-
-            IEnumerator Eating()
-            {
-                var time = Time.realtimeSinceStartup;
-
-                while (Time.realtimeSinceStartup - time < timeFeedEating)
-                {                    
-                    if (isAggressive && player.IsWalking && transform.position.IsClose(player.Position, CloseType.Action))
-                    {
-                        yield return StartCoroutine(Scratching());
-                    }
-                        
-                    yield return null;
-                }                
-            }
-
-            IEnumerator Scratching()
-            {           
-                var eatBefore = animator.GetBool("Eat");
-                
-                animator.SetBool("Eat", false);
-                animator.SetBool("Scratch", true);
-
-                yield return StartCoroutine(WaitAndRotate(timeScratching));
-
-                animator.SetBool("Scratch", false);
-                animator.SetBool("Eat", eatBefore);
-            }
-
-            IEnumerator WaitAndRotate(float duration)
-            {
-                var time = Time.realtimeSinceStartup;
-
-                while (Time.realtimeSinceStartup - time < duration)
-                {
-                    navMeshAgent.updateRotation = false;
-
-                    var targetRotation = Quaternion.LookRotation(player.Position - transform.position, Vector3.up);
-                    transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, 3f);
-
-                    yield return null;                    
-                }
-
-                navMeshAgent.updateRotation = true;
-            }
-        }
-
-        private void BehaviourSitting()
-        {
-            behaviourWasFinished = true;
-            animator.SetBool("Sit", true);
-        }
-
-        private void BehaviourRunSlowlyToTheBall()
-        {
-            behaviourWasFinished = true;
-
-            animator.SetBool("Walk", true);
-            navMeshAgent.SetDestination(ball.Position);
-        }
-
-        private void BehaviourRunLikeForestGump()
-        {
-            behaviourWasFinished = true;
-            SetSpeed(CatSpeed.SuperFast);
-
-            if (!behaviourWasStarted)
-            {
-                animator.SetBool("Walk", true);
-                animator.speed = 3;
-                StartCoroutine(Running());
-                behaviourWasStarted = true;
-            }            
-
-            IEnumerator Running()
-            {
-                while (true)
-                {
-                    Vector3 finalPosition;
-                    navMeshAgent.RandomPosition(transform.position, 10f, out finalPosition);
-                    navMeshAgent.SetDestination(finalPosition);
-
-                    yield return new WaitForSeconds(timeRunLikeForestGumpChangeDirection);
-                }                
-            }
-        }
-
-        private void BehaviourEatAllAggressive()
-        {
-            SetSpeed(CatSpeed.Default);            
-            EatFood(true);
-        }
-
-        private void BehaviourEatAllQuickly()
-        {
-            SetSpeed(CatSpeed.Fast);
-            animator.speed = 3f;
-            EatFood(false);
-        }
-
-        private void BehaviourScratch()
-        {
-            behaviourWasFinished = true;
-
-            navMeshAgent.updateRotation = false;
-            var targetRotation = Quaternion.LookRotation(player.Position - transform.position, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, 3f);
-            animator.SetBool("Scratch", true);            
-            navMeshAgent.updateRotation = true;
-        }
-
-        private void BehaviourPurr()
-        {
-            if (!behaviourWasStarted)
-            {
-                behaviourWasStarted = true;
-                behaviourWasFinished = true;
-                audioSource.clip = clipPurr;
-                audioSource.Play();
-            }
-        }
-
-        private void BehaviourPurrAndWagTail()
-        {
-            if (!behaviourWasStarted)
-            {
-                behaviourWasStarted = true;
-                behaviourWasFinished = true;
-                audioSource.clip = clipPurr;
-                audioSource.Play();
-
-                animator.SetBool("Tail", true);
-                SetSpeed(CatSpeed.Fast);
-            }
-        }
-
-        private void BehaviourJumpAndBiteRightEar()
-        {
-            if (!behaviourWasStarted)
-            {
-                behaviourWasFinished = true;
-                behaviourWasStarted = true;
-                animator.SetBool("Jump", true);
-                
-                if (!transform.position.IsClose(player.Position, CloseType.Action))
-                {
-                    navMeshAgent.updateRotation = true;
-                    navMeshAgent.SetDestination(player.Position);
-                    animator.SetBool("Jump", true);
-                }       
-                else
-                {
-                    animator.Play("Base Layer.Jump", 0, 0);
-                }
-            }           
-        }
-
-        private void BehaviourRunAndPiss()
-        {
-            behaviourWasFinished = true;            
-
-            if (!behaviourWasStarted)
-            {
-                behaviourWasStarted = true;
-                destinationWasReached = false;
-
-                currentCarpet = (carpets.Count() > 0) ? carpets.ElementAt(random.Next(carpets.Count())) : null;
-                if (currentCarpet is object)
-                {
-                    animator.SetBool("Walk", true);
-                    SetSpeed(CatSpeed.Fast);
-
-                    destinationPosition = currentCarpet.Position;
-                    navMeshAgent.SetDestination(destinationPosition);
-                }
-                else
-                {
-                    destinationWasReached = true;
-                }
-            }
-
-            if (behaviourWasStarted && !destinationWasReached)
-            {
-                
-                if (transform.position.IsClose(destinationPosition, CloseType.VeryClose))
-                {
-                    destinationWasReached = true;
-                    animator.SetBool("Walk", false);
-
-                    if (currentCarpet is object)
-                    {
-                        currentCarpet.PissOnMe();
-                    }
-                }
-            }
-        }
-
-        private void BehaviourRunAnotherRoom()
-        {
-            behaviourWasFinished = true;
-            if (!behaviourWasStarted)
-            {                
-                behaviourWasStarted = true;
-                destinationWasReached = false;
-
-                NavMeshHit navMeshHit;
-                navMeshAgent.SamplePathPosition(NavMesh.AllAreas, 0f, out navMeshHit);
-
-                var anotherRoom = rooms.Where(i => i.NavMeshAreaMask != navMeshHit.mask).FirstOrDefault();
-
-                if (anotherRoom is object)
-                {
-                    animator.SetBool("Walk", true);
-                    SetSpeed(CatSpeed.Fast);
-
-                    destinationPosition = anotherRoom.Center;
-                    NavMeshHit hit;
-                    NavMesh.SamplePosition(destinationPosition, out hit, 1f, anotherRoom.NavMeshAreaMask);
-
-                    navMeshAgent.SetDestination(hit.position);
-                }
-            }
-
-            if (behaviourWasStarted && !destinationWasReached)
-            {
-
-                if (transform.position.IsClose(destinationPosition, CloseType.VeryClose))
-                {
-                    destinationWasReached = true;
-                    animator.SetBool("Walk", false);
-                }
-            }
-        }
-        #endregion
     }
 }
